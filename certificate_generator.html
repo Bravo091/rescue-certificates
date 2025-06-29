@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Rescue 1122 Certificate Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #f0f2f5;
+    text-align: center;
+    padding: 20px;
+    margin: 0;
+}
+.generator-section {
+    display: block; /* Shown by default */
+}
+.panel-section {
+    display: none; /* Hidden by default */
+    font-family: 'Roboto', sans-serif;
+    background: linear-gradient(to right, #ece9e6, #ffffff);
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+    box-sizing: border-box;
+    width: 100%;
+}
+.input-section {
+    margin-bottom: 20px;
+}
+input, button {
+    margin: 10px;
+    padding: 10px;
+    width: 260px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box; /* Include padding/border in width */
+}
+button {
+    background-color: #4CAF50;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+button:hover {
+    background-color: #45a049;
+}
+#downloadBtn {
+    background-color: #008CBA;
+}
+#downloadBtn:hover {
+    background-color: #007bb5;
+}
+canvas {
+    border: 1px solid #aaa;
+    margin-top: 30px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    max-width: 100%;
+    height: auto;
+    display: block; /* Ensures it takes up its own line */
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Styles for the QR code's destination panel */
+.panel-container {
+    background: #fff;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    padding: 30px 40px;
+    max-width: 500px;
+    width: 100%;
+    text-align: center;
+    border: 2px solid #e0e0e0;
+    margin: 20px auto;
+}
+.panel-logo {
+    width: 120px; /* Adjust size as needed */
+    height: auto;
+    margin-bottom: 25px;
+    filter: drop-shadow(0 3px 6px rgba(0,0,0,0.1));
+}
+.panel-container h1 {
+    font-family: 'Playfair Display', serif;
+    color: #4CAF50; /* Rescue 1122 Green */
+    font-size: 2.2em;
+    margin-top: 0;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 10px;
+}
+.detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px dashed #f0f0f0;
+}
+.detail-item:last-child {
+    border-bottom: none;
+}
+.detail-label {
+    font-weight: bold;
+    color: #555;
+    flex: 1;
+    text-align: left;
+}
+.detail-value {
+    color: #333;
+    flex: 2;
+    text-align: right;
+    font-size: 1.1em;
+    word-wrap: break-word; /* Ensure long text wraps */
+    word-break: break-all; /* Break long words if necessary */
+}
+.detail-value.name {
+    font-family: 'Great Vibes', cursive;
+    font-size: 1.5em;
+    color: #000;
+}
+@media (max-width: 600px) {
+    .panel-container {
+        padding: 20px;
+    }
+    .detail-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .detail-label, .detail-value {
+        text-align: left;
+        width: 100%;
+    }
+    .detail-value {
+        margin-top: 5px;
+    }
+}
+</style>
+</head>
+<body>
+
+<div class="generator-section" id="generatorSection">
+    <h2>Rescue 1122 Certificate Generator</h2>
+
+    <div class="input-section">
+        <input type="text" id="name" placeholder="Recipient Name" value="Mr. Fahad Rehman" required />
+        <input type="text" id="designation" placeholder="Designation" value="Emergency Medical Technician" required />
+        <input type="text" id="district" placeholder="District" value="Peshawar" required />
+        <input type="text" id="certId" placeholder="Certificate ID" value="RSC-2025-001" required />
+    </div>
+    <button onclick="generateCertificate()">Generate Certificate</button>
+    <button id="downloadBtn" onclick="downloadCertificate()" style="display: none;">Download Certificate (PDF)</button>
+
+    <canvas id="certificateCanvas" width="1077" height="768"></canvas>
+</div>
+
+<div class="panel-section" id="panelSection">
+    <div class="panel-container">
+        <img id="panelLogo" alt="Rescue 1122 Logo" class="panel-logo">
+        <h1>Certificate Details</h1>
+        <div id="details-content">
+            </div>
+    </div>
+</div>
+
+<script>
+// --- Base64 String for Rescue 1122 Logo ---
+// IMPORTANT: Replace this with your actual logo's Base64 string.
+// If empty, the logo won't appear on the panel.
+const rescueLogoBase64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAEsAQMAAABAmO6xAAAABlBMVEVHcEwAAAD///904E7OAAAAoklEQVR42u3BMQEAAADCoPq/QWphAxQAAAAAAAAAAAAAAPjL1wAAAAAAAAAAAAAA8Ms4AAAAAAAAAAAAAAAAAPDLuQAAAAAAAAAAAAAA8MsoAAAAAAAAAAAAAAAAAPDLuQAAAAAAAAAAAAAA8MsoAAAAAAAAAAAAAAAAAPDLuQAAAAAAAAAAAAAA8MsoAAAAAAAAAAAAAAAAAPDLuQAAAAAAAAAAAAAA8MsoAAAAAAAAAAAAAAAAAPDLuQAAAAAAAAAAAAAA8MsoAAAAAAAAAAAAAAAAAPDLuQAAAAAAAAAAAAAA8MsoAAAAAAAAAAAAAAAAYF2F9+V9A1vY50cAAAAASUVORK5CYII="; // Placeholder: Replace with your actual Base64 logo string
+
+
+async function generateCertificate() {
+    const name = encodeURIComponent(document.getElementById('name').value);
+    const designation = encodeURIComponent(document.getElementById('designation').value);
+    const district = encodeURIComponent(document.getElementById('district').value);
+    const certId = encodeURIComponent(document.getElementById('certId').value);
+    const date = encodeURIComponent(new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })); 
+
+    const canvas = document.getElementById('certificateCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const bg = new Image();
+    bg.src = 'Rescue appriciation Certificate.jpg'; 
+
+    bg.onload = async () => {
+        ctx.drawImage(bg, 0, 0, canvas.width, canvas.height);
+
+        // --- Draw Recipient Name ---
+        ctx.fillStyle = "#000";
+        ctx.font = "normal 42px 'Great Vibes', 'Brush Script MT', 'Segoe Script', cursive";
+        ctx.textAlign = "center";
+        ctx.fillText(decodeURIComponent(name), canvas.width / 2, 425);
+
+        // --- Draw the main appreciation text block ---
+        ctx.fillStyle = "#000";
+        ctx.font = "18px Arial"; 
+        ctx.textAlign = "center";
+
+        const lineHeight = 20; 
+        let currentY = 475; 
+
+        const textLines = [
+            "This Certificate of Appreciation is awarded to him as an",
+            `${decodeURIComponent(designation)}, in recognition of his dedication,`, 
+            "excellent performance, and valuable service in the line of duty",
+            `within District ${decodeURIComponent(district)}.` 
+        ];
+
+        textLines.forEach(line => {
+            ctx.fillText(line, canvas.width / 2, currentY);
+            currentY += lineHeight;
+        });
+
+        // --- Generate QR Code (linking to self with data) ---
+        // Construct the URL to THIS SAME HTML FILE, with a hash to show the panel,
+        // and query parameters for all the certificate data.
+        const currentURL = window.location.href.split('#')[0]; // Get URL without existing hash
+        const qrDataURL = `${currentURL}#certificate-details?name=${name}&designation=${designation}&district=${district}&certId=${certId}&date=${date}`;
+
+        const qrCanvas = document.createElement('canvas');
+        await QRCode.toCanvas(qrCanvas, qrDataURL, { width: 100, errorCorrectionLevel: 'H' });
+
+        ctx.drawImage(qrCanvas, 80, 590, 100, 100); 
+
+        // --- Draw Date (below QR code, centered) ---
+        ctx.fillStyle = "#000";
+        ctx.font = "16px Arial"; 
+        ctx.textAlign = "center"; 
+        ctx.fillText(decodeURIComponent(date), canvas.width / 2, 700); 
+
+        document.getElementById('downloadBtn').style.display = 'inline-block';
+    };
+}
+
+async function downloadCertificate() {
+    const { jsPDF } = window.jspdf;
+    const canvas = document.getElementById('certificateCanvas');
+    const name = document.getElementById('name').value;
+
+    // Get image data from canvas
+    const imgData = canvas.toDataURL('image/jpeg', 1.0); // Use JPEG for smaller file size in PDF
+
+    // Create a new jsPDF instance
+    // Units: 'pt' (points) for precision, format: custom based on canvas dimensions
+    // Canvas dimensions are 1077x768 pixels.
+    // To convert pixels to points (assuming 96 DPI for web), 1 inch = 72 points.
+    // 1077px / 96dpi * 72pt/inch = 807.75pt
+    // 768px / 96dpi * 72pt/inch = 576pt
+    const pdf = new jsPDF({
+        orientation: canvas.width > canvas.height ? 'landscape' : 'portrait',
+        unit: 'px', // Use pixels directly for simplicity with canvas.width/height
+        format: [canvas.width, canvas.height] // Set PDF page size to canvas size
+    });
+
+    // Add the image to the PDF
+    pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height); // x, y, width, height
+
+    // Save the PDF
+    pdf.save(`Certificate_${name.replace(/\s+/g, '_')}.pdf`);
+}
+
+// --- Logic to display the panel when QR code URL is accessed ---
+document.addEventListener('DOMContentLoaded', () => {
+    const hash = window.location.hash;
+
+    if (hash === '#certificate-details') {
+        document.getElementById('generatorSection').style.display = 'none';
+        document.getElementById('panelSection').style.display = 'flex'; // Use flex to center content
+
+        const params = new URLSearchParams(window.location.hash.substring(1).split('?')[1]);
+        const detailsContent = document.getElementById('details-content');
+        const panelLogo = document.getElementById('panelLogo');
+
+        // Set the logo source
+        if (rescueLogoBase64) {
+            panelLogo.src = rescueLogoBase64;
+        } else {
+            // Fallback if logo Base64 is not provided
+            panelLogo.style.display = 'none'; 
+        }
+
+        const data = {
+            'Recipient Name': params.get('name') || 'N/A',
+            'Designation': params.get('designation') || 'N/A',
+            'District': params.get('district') || 'N/A',
+            'Certificate ID': params.get('certId') || 'N/A',
+            'Date Issued': params.get('date') || 'N/A'
+        };
+
+        for (const [label, value] of Object.entries(data)) {
+            const detailItem = document.createElement('div');
+            detailItem.classList.add('detail-item');
+
+            const labelSpan = document.createElement('span');
+            labelSpan.classList.add('detail-label');
+            labelSpan.textContent = label + ':';
+
+            const valueSpan = document.createElement('span');
+            valueSpan.classList.add('detail-value');
+            if (label === 'Recipient Name') {
+                valueSpan.classList.add('name'); 
+            }
+            valueSpan.textContent = decodeURIComponent(value);
+
+            detailItem.appendChild(labelSpan);
+            detailItem.appendChild(valueSpan);
+            detailsContent.appendChild(detailItem);
+        }
+    } else {
+        document.getElementById('generatorSection').style.display = 'block';
+        document.getElementById('panelSection').style.display = 'none';
+    }
+});
+</script>
+
+</body>
+</html>
